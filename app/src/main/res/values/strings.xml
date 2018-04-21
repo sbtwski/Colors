@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Colors</string>
+
+    <string name="saved_colors">See saved colors</string>
+    <string name="info">See user hints</string>
+    <string name="user_saves">user_saves</string>
+
+    <string name="info_left">Lean your phone to the left, to move around colors circle counter-clockwise</string>
+    <string name="info_right">Lean your phone to the right, to move around colors circle clockwise</string>
+    <string name="info_tow">Lean your phone towards you to decrease color saturation</string>
+    <string name="info_away">Lean your phone away from you to increase color saturation</string>
+    <string name="info_shake">Shake your phone up to save currently displayed color</string>
+
+    <string name="saturation">Saturation example</string>
+    <string name="colors">Color circle example</string>
+    <string name="color_delete">DELETE</string>
+</resources>

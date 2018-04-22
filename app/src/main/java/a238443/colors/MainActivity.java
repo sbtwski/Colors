@@ -33,14 +33,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int[] rgba = {255, 200, 0, 255};
     private boolean subtractionCycle = true;        // means that when you tilt to the left it will subtract
     private int activePosition = 1;
-    private double previousY = 7;
-    private boolean callstart = true;
+    private float tiltAxis = DEFAULT_TILT_AXIS;
+    private boolean tiltAxisSet = false;
 
-    private static final double SPEED_DIVISION_FACTOR = 1.5;
+    private static final float SPEED_DIVISION_FACTOR = 1.5f;
     private static final int ALPHA_POS = 3;
-    private static final double TILT_THRESHOLD = 1;
-    private static final int MIDDLE_TILT = 8;
-    private static final double SHAKE_THRESHOLD = 1.75;
+    private static final int ALPHA_CHANGE_SPEED = 1;
+    private static final float DEFAULT_TILT_AXIS = 7;
+    private static final float TILT_MARGIN = 1.5f;
+    private static final float SHAKE_THRESHOLD = 1.75f;
     private static final int COOLDOWN_TIME = 500;
 
     private ArrayList<Integer> savedColors;
@@ -83,8 +84,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onSaveInstanceState(savedInstanceState);
         savedInstanceState.putIntArray("rgba",rgba);
         savedInstanceState.putBoolean("cycle",subtractionCycle);
-        savedInstanceState.putInt("active",activePosition);
-        savedInstanceState.putIntegerArrayList("saved",savedColors);
+        savedInstanceState.putInt("active_position",activePosition);
+        savedInstanceState.putIntegerArrayList("colors_list",savedColors);
     }
 
     @Override
@@ -92,8 +93,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onRestoreInstanceState(savedInstanceState);
         rgba = savedInstanceState.getIntArray("rgba");
         subtractionCycle = savedInstanceState.getBoolean("cycle");
-        activePosition = savedInstanceState.getInt("active");
-        savedColors = savedInstanceState.getIntegerArrayList("saved");
+        activePosition = savedInstanceState.getInt("active_position");
+        savedColors = savedInstanceState.getIntegerArrayList("colors_list");
     }
 
     @Override
@@ -133,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_saved) {
             Intent toGrid = new Intent(this, ColorsActivity.class);
-            toGrid.putExtra("saved", savedColors);
+            toGrid.putExtra("colors_list", savedColors);
             startActivityForResult(toGrid,1);
         }
         if(item.getItemId() == R.id.action_info) {
@@ -145,15 +146,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void setupSensors() {
         if(sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY) != null)
             gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        else
-            Log.e("gravity","Gravity sensor not available");
+        else {
+            Log.e("gravity", "Gravity sensor not available");
+            closeApp();
+        }
 
         if(sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null)
             accelerationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        else
-            Log.e("acceleration","Linear acceleration sensor not available");
-
-        //TODO Show message "sensor unavailable", close app
+        else {
+            Log.e("acceleration", "Linear acceleration sensor not available");
+            closeApp();
+        }
     }
 
     private void prompt(CharSequence csToShow){
@@ -176,7 +179,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         float x = coordinates[0];
         float y = coordinates[1];
 
-        double speed = Math.abs(x/SPEED_DIVISION_FACTOR);
+        float speed = Math.abs(x/SPEED_DIVISION_FACTOR);
+
+        if(!tiltAxisSet) {
+            tiltAxis = y;
+            tiltAxisSet = true;
+        }
 
         if(subtractionCycle ^ (x>0))
             rgba[activePosition] += speed;
@@ -185,12 +193,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         rgbaValuesCheck(activePosition, true, x > 0);
 
-        double difference = Math.abs(previousY - y);
-        if(difference > TILT_THRESHOLD) {
-            if (y > MIDDLE_TILT)
-                rgba[ALPHA_POS] -= difference;
+        if(Math.abs(y-tiltAxis) > TILT_MARGIN) {
+            if (y > tiltAxis)
+                rgba[ALPHA_POS] -= ALPHA_CHANGE_SPEED;
             else
-                rgba[ALPHA_POS] += difference;
+                rgba[ALPHA_POS] += ALPHA_CHANGE_SPEED;
         }
 
         rgbaValuesCheck(ALPHA_POS, false, false);
@@ -246,5 +253,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for(int i=0; i < amountToRead; i++) {
             savedColors.add(sharedPref.getInt("c"+i,0));
         }
+    }
+
+    private void closeApp() {
+        prompt("Necessary sensors not found");
+        finish();
+        moveTaskToBack(true);
     }
 }

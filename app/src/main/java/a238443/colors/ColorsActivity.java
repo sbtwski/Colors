@@ -22,6 +22,8 @@ public class ColorsActivity extends AppCompatActivity{
     Toolbar colorsToolbar;
     Button deleteButton;
     int selectedColor = -1;
+    int selectedPosition = -1;
+    boolean colorDeleted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,39 +37,41 @@ public class ColorsActivity extends AppCompatActivity{
         colorAdapter.addDatabase(savedColors);
 
         colorsToolbar.setNavigationIcon(R.drawable.ic_action_back);
-        setupListeners();
 
-        if(selectedColor != (-1)) {
-            int position = savedInstanceState.getInt("selected");
-            long id = savedInstanceState.getLong("id");
-            gridView.performItemClick(gridView.getChildAt(position), position, id);
-        }
+        setupListeners();
     }
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
-        savedInstanceState.putIntegerArrayList("saved", savedColors);
-        savedInstanceState.putInt("selected",selectedColor);
-        savedInstanceState.putInt("position",gridView.getSelectedItemPosition());
-        savedInstanceState.putLong("id",gridView.getSelectedItemId());
+        savedInstanceState.putIntegerArrayList("colors_grid", savedColors);
+        savedInstanceState.putInt("selected_color",selectedColor);
+        savedInstanceState.putInt("color_position",selectedPosition);
+        savedInstanceState.putLong("color_id",gridView.getSelectedItemId());
+        savedInstanceState.putBoolean("color_deleted",colorDeleted);
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        colorAdapter.addDatabase(savedInstanceState.getIntegerArrayList("saved"));
-        selectedColor = savedInstanceState.getInt("selected");
+        colorAdapter.addDatabase(savedInstanceState.getIntegerArrayList("colors_grid"));
+        selectedColor = savedInstanceState.getInt("selected_color");
 
-        if(selectedColor != (-1))
-            fillViews(selectedColor);
+        if(selectedColor != (-1)) {
+            int position = savedInstanceState.getInt("color_position");
+            long id = savedInstanceState.getLong("color_id");
+            gridView.performItemClick(gridView.getChildAt(position), position, id);
+        }
 
+        colorDeleted = savedInstanceState.getBoolean("color_deleted");
+        if(colorDeleted)
+            colorsToolbar.setNavigationIcon(R.drawable.ic_action_check);
     }
 
     private void getData() {
         if(savedColors == null) {
             Intent fromMain = getIntent();
-            savedColors = fromMain.getIntegerArrayListExtra("saved");
+            savedColors = fromMain.getIntegerArrayListExtra("colors_list");
         }
     }
 
@@ -119,24 +123,30 @@ public class ColorsActivity extends AppCompatActivity{
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
                 selectedColor = savedColors.get(position);
                 fillViews(selectedColor);
+                selectedPosition = position;
 
                 deleteButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        clearPreview();
                         colorAdapter.removeItem(position);
-                        preview.setBackgroundColor(Color.WHITE);
-                        alphaView.setText("");
-                        blueView.setText("");
-                        greenView.setText("");
-                        redView.setText("");
-                        hexView.setText("");
-                        deleteButton.setVisibility(View.INVISIBLE);
-                        selectedColor = -1;
+                        colorsToolbar.setNavigationIcon(R.drawable.ic_action_check);
+                        colorDeleted = true;
                     }
                 });
             }
         });
+    }
 
-
+    private void clearPreview() {
+        preview.setBackgroundColor(Color.WHITE);
+        alphaView.setText("");
+        blueView.setText("");
+        greenView.setText("");
+        redView.setText("");
+        hexView.setText("");
+        deleteButton.setVisibility(View.INVISIBLE);
+        selectedColor = -1;
+        selectedPosition = -1;
     }
 }
